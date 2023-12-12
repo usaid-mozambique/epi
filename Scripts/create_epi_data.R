@@ -26,7 +26,7 @@ folder_setup(
 
 #VALUES AND PATHS --------------------------------------------------------------
 
-VAL_QUARTER = "qtr4"
+VAL_QUARTER = "qtr2"
 VAL_YEAR = 2023
 
 SPECTRUM_RAW <- "Data/indicators.csv"
@@ -227,13 +227,21 @@ epi <- spectrum %>%
     names_to = "indicator",
     values_to = "value"
   ) %>%
-  mutate(period = stringr::str_replace(period, "qtr", ""))
+  mutate(period = stringr::str_replace(period, "qtr", "")) %>%
+  # remove all nulls in the dataset for percent calculation to work
 
+  pivot_wider(names_from = indicator, values_from = value) %>%
+  mutate_all(~replace(., is.na(.), 0))  %>%
+  mutate(tx_pvls_percent = case_when(tx_pvls_d == 0 ~ 0,
+                                  .default = tx_pvls_n / tx_pvls_d),
+         virally_suppressed = round(tx_curr * tx_pvls_percent, digits = 0)
+         ) %>%
+  select(-tx_pvls_percent)
 
 # OUTPUT ----------------------------------------------------------------------------
 
 # to disk
-write_csv2(epi, path_quarterly_epi_output_file)
+write_excel_csv2(epi, path_quarterly_epi_output_file, delim = ",")
 
 # Create historical datasets
 epi_historic_files <- dir("Dataout/quarterly/", pattern = "*.csv")
