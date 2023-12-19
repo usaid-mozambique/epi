@@ -1,2 +1,0 @@
-# epi
-Epi Model
