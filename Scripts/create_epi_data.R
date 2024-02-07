@@ -7,10 +7,13 @@ library(tidyverse)
 library(mozR)
 
 
+
+
 #VALUES AND PATHS --------------------------------------------------------------
 
 VAL_QUARTER = "qtr4"
 VAL_YEAR = 2023
+VAL_YEAR_SPECTRUM = 2022
 
 SPECTRUM_RAW <- "Data/indicators.csv"
 MAPPING_RAW  <- "Data/mapping.xlsx"
@@ -39,6 +42,7 @@ spectrum_df <- read_csv(SPECTRUM_RAW)
 
 military_psnu <- read_xlsx("Data/military_psnu_contribution.xlsx",
                            sheet = "contribution")
+
 
 # Load MER Data
 mer_df <- read_psd(MER_RAW) %>%
@@ -96,7 +100,7 @@ spectrum <- spectrum_df %>%
     sex != "Both",
     indicator %in% c("plhiv", "aware_plhiv_num"),
     area_level == 3,
-    year == VAL_YEAR,
+    year == VAL_YEAR_SPECTRUM,
     age_group_label %in% c(
       "<01",
       "01-04",
@@ -203,7 +207,7 @@ TX_CURR_military <- TX_CURR_M %>%
 
   select(-c(percent_total, total_tx_curr, value, sex_age_percent, tx_curr_psnu,
             col_join)) %>%
-rename(!!VAL_QUARTER := tx_curr_sex_age)
+rename(!!VAL_QUARTER == tx_curr_sex_age)
 
 #Add military to Mer non-military - only needed for TX_CURR
 
@@ -225,7 +229,9 @@ TX_PVLS_N <- mozR::create_epi_model(
   "TX_PVLS",
   c(
     "Age/Sex/Indication/HIVStatus",
-    "Age Aggregated/Sex/Indication/HIVStatus"
+    "Age Aggregated/Sex/Indication/HIVStatus",
+    "Age/Sex/HIVStatus",
+    "Age Aggregated/Sex/HIVStatus"
   ),
   num_dem = "N",
   label = "TX_PVLS_N"
@@ -236,7 +242,9 @@ TX_PVLS_D <- mozR::create_epi_model(
   "TX_PVLS",
   c(
     "Age/Sex/Indication/HIVStatus",
-    "Age Aggregated/Sex/Indication/HIVStatus"
+    "Age Aggregated/Sex/Indication/HIVStatus",
+    "Age/Sex/HIVStatus",
+    "Age Aggregated/Sex/HIVStatus"
   ),
   num_dem = "D",
   label = "TX_PVLS_D"
@@ -302,3 +310,6 @@ epi_historic <- epi_historic_files %>%
   map( ~ read_csv2(file.path("Dataout/quarterly/", .))) %>%
   reduce(rbind) %>%
   write_excel_csv2("Dataout/epi.csv")
+
+
+
