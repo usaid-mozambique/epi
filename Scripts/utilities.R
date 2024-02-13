@@ -94,7 +94,7 @@ create_mer <- function(MER_PATH, VAL_YEAR, VAL_QUARTER){
 
     #call military here to join everything
 
-    temp_df <- read_msd(MER_PATH) %>%
+    temp_df <- read_psd(MER_PATH) %>%
         filter(fiscal_year == VAL_YEAR,
                ageasentered != "Unknown Age",
                indicator %in% c("TX_CURR", "TX_PVLS"),
@@ -138,8 +138,7 @@ create_mer <- function(MER_PATH, VAL_YEAR, VAL_QUARTER){
 
 create_military_MER <- function(MER_PATH, VAL_YEAR, VAL_QUARTER, MILITARY_PSNU_PATH){
 
-    temp_contribution_df <- read_xlsx(MILITARY_PSNU_PATH,
-                        sheet = "contribution") %>%
+    temp_contribution_df <- googlesheets4::read_sheet(MILITARY_PSNU_PATH) %>%
         clean_names() %>%
         select(-tx_curr) %>%
         mutate(col_join = "join")

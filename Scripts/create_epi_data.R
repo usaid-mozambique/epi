@@ -5,16 +5,26 @@ library(lubridate)
 library(readxl)
 library(tidyverse)
 library(mozR)
+library(googledrive)
+
+
+#authentication for google
+glamr::load_secrets()
+
+
 
 #VALUES AND PATHS (Updated by end user) --------------------------------------------------------------
 
-SPECTRUM_PATH <- "Data/indicators.csv"
+SPECTRUM_PATH <- "Data/indicators.csv" #look for indicators on google drive (spectrum folder)
+#SPECTRUM_PATH <- "1zeXqnQXLg-0Y_C2VwlpNCnj3lTCaEIdV"  Fix - need to be able to reaed this
 MAPPING_PATH  <- "Data/mapping.xlsx"  #TODO:  this needs to point to google
+#MAPPING_PATH <- "1HSKvJ8Tk2EbhXaxvtK5oFI9WPmAzt24G7ZCs_YVzzpE"  Fix - it can't find the path
 MER_PATH      <- "Data/Genie_SITE_IM_2023_2024.txt"
-MER_PATH <- "Data/dg_ref.rds"
-MILITARY_PSNU_PATH <- "Data/military_psnu_contribution.xlsx"   #TODO:  this needs to point to google
+MILITARY_PSNU_PATH <- "1wTohWSk93xfOGZXxUoArXUIdGXqaZuaWJ5YR_hf_PAI"
 START_DATE <- "2024 Q1"
 END_DATE <- "2024 Q1"
+
+
 
 #location for epi dataset.  What should the right name be?
 EPI_OUTPUT_PATH <- "Dataout/epi.csv"
@@ -23,7 +33,15 @@ EPI_OUTPUT_PATH <- "Dataout/epi.csv"
 source("Scripts/utilities.R")
 
 
+
 # Create Datasets -----------------------------------------------------------------------
+
+csv_file <- drive_get(as_id(SPECTRUM_PATH))
+data <- read_csv(drive_download(as_id(SPECTRUM_PATH), type = "csv"))
+
+
+military <- googlesheets4::read_sheet(MILITARY_PSNU_PATH)
+mapping <- googlesheets4::read_sheet(MAPPING_PATH)
 
 create_epi_data <- function(x){
 
