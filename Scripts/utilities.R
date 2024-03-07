@@ -2,6 +2,15 @@
 
 
 
+#' Title
+#'
+#' @param START_DATE
+#' @param END_DATE
+#'
+#' @return
+#' @export
+#'
+#' @examples
 create_date <- function(START_DATE, END_DATE){
     START_DATE_CONVERT <- lubridate::yq(START_DATE)
     END_DATE_CONVERT <- lubridate::yq(END_DATE)
@@ -18,10 +27,16 @@ create_date <- function(START_DATE, END_DATE){
 
 create_spectrum <- function(spectrum_file, mapping_file, VAL_YEAR_SPECTRUM){
 
-    mapping_temp_df <- read_excel(mapping_file) %>%
+    # download from google drive
+    mapping_temp_df <- googlesheets4::read_sheet(mapping_file) %>%
         select(area_id, MER_name, psnuuid, snu1uid, snu1, psnu)
 
-    spectrum_temp_df <- read_csv(spectrum_file) %>%
+    # Download the CSV file from Google Drive and store it in a temp folder locally
+    temp_file <- tempfile(fileext = ".csv")
+    drive_download(as_id(spectrum_file), path = temp_file)
+
+
+    spectrum_temp_df <- read_csv(temp_file) %>%
         left_join(mapping_temp_df, join_by(area_id)) %>%
         mutate(
             name = case_when(is.na(MER_name) ~ area_name,
@@ -90,6 +105,16 @@ create_spectrum <- function(spectrum_file, mapping_file, VAL_YEAR_SPECTRUM){
     return(spectrum_temp_df)
 }
 
+#' Title
+#'
+#' @param MER_PATH
+#' @param VAL_YEAR
+#' @param VAL_QUARTER
+#'
+#' @return
+#' @export
+#'
+#' @examples
 create_mer <- function(MER_PATH, VAL_YEAR, VAL_QUARTER){
 
     #call military here to join everything
@@ -109,8 +134,8 @@ create_mer <- function(MER_PATH, VAL_YEAR, VAL_QUARTER){
         select(
             snu1,
             snu1uid,
-            psnu,
-            psnuuid,
+            snu2,
+            snu2uid,
             fiscal_year,
             ageasentered,
             sex,
@@ -120,10 +145,10 @@ create_mer <- function(MER_PATH, VAL_YEAR, VAL_QUARTER){
             all_of(VAL_QUARTER)
         ) %>%
         mutate(
-            psnuuid = case_when(
-                psnu == "Chonguene" ~ "jDWCkBXYllV",
-                psnu == "Mandlakaze" ~ "VjJPal9jqUi",
-                TRUE ~ psnuuid
+            snu2uid = case_when(
+                snu2 == "Chonguene" ~ "jDWCkBXYllV",
+                snu2 == "Mandlakaze" ~ "VjJPal9jqUi",
+                TRUE ~ snu2uid
             ),
             age_group_type = case_when(
                 ageasentered %in% c("<01", "01-04", "05-09", "10-14", "<15") ~ "ped",
@@ -131,23 +156,37 @@ create_mer <- function(MER_PATH, VAL_YEAR, VAL_QUARTER){
             )
         ) %>%
         select(-fiscal_year) %>%
-        rename(value := !!VAL_QUARTER)
+        rename(value := !!VAL_QUARTER,
+               psnu = snu2,
+               psnuuid = snu2uid)
     return(temp_df)
 }
 
 
-create_military_MER <- function(MER_PATH, VAL_YEAR, VAL_QUARTER, MILITARY_PSNU_PATH){
+#' Title
+#'
+#' @param mer_df
+#' @param VAL_YEAR
+#' @param VAL_QUARTER
+#' @param MILITARY_PSNU_PATH
+#'
+#' @return
+#' @export
+#'
+#' @examples
+create_military_MER <- function(mer_df, VAL_YEAR, VAL_QUARTER, MILITARY_PSNU_PATH){
 
     temp_contribution_df <- googlesheets4::read_sheet(MILITARY_PSNU_PATH) %>%
         clean_names() %>%
         select(-tx_curr) %>%
         mutate(col_join = "join")
 
-    temp_military <- create_mer(MER_PATH, VAL_YEAR, VAL_QUARTER) %>%
+    temp_military <- mer_df %>%
         filter(snu1 == "_Military Mozambique",
                indicator == "TX_CURR",
                numeratordenom == "N",
-               standardizeddisaggregate %in% c("Age/Sex/HIVStatus", "Age Aggregated/Sex/HIVStatus")) %>%
+               standardizeddisaggregate %in% c("Age/Sex/HIVStatus", "Age Aggregated/Sex/HIVStatus")
+               ) %>%
         select(-c(psnu, psnuuid, snu1, snu1uid)) %>%
         mutate( col_join = "join"
         ) %>%
@@ -159,10 +198,10 @@ create_military_MER <- function(MER_PATH, VAL_YEAR, VAL_QUARTER, MILITARY_PSNU_P
                  col_join,
                  standardizeddisaggregate) %>%
         rename(military_value = value) %>%
-        #how to summarize correctly by
+    #how to summarize correctly by
         dplyr::summarise(military_value = sum(military_value, na.rm = TRUE), .groups = 'drop')
 
-    TX_CURR_military_total <- temp_military %>%
+     TX_CURR_military_total <- temp_military %>%
         summarise(military_value = sum(military_value)) %>%
         pull()
 
@@ -185,6 +224,19 @@ create_military_MER <- function(MER_PATH, VAL_YEAR, VAL_QUARTER, MILITARY_PSNU_P
 }
 
 
+#' Title
+#'
+#' @param spectrum_df
+#' @param TX_CURR
+#' @param TX_PVLS_N
+#' @param TX_PVLS_D
+#' @param VAL_YEAR
+#' @param VAL_QUARTER
+#'
+#' @return
+#' @export
+#'
+#' @examples
 create_epi_df <- function(spectrum_df, TX_CURR, TX_PVLS_N, TX_PVLS_D, VAL_YEAR, VAL_QUARTER){
 
     epi_temp <- spectrum_df %>%
@@ -230,6 +282,15 @@ create_epi_df <- function(spectrum_df, TX_CURR, TX_PVLS_N, TX_PVLS_D, VAL_YEAR, 
 }
 
 #province or snu level
+#' Title
+#'
+#' @param mer_raw_df
+#' @param epi_df
+#'
+#' @return
+#' @export
+#'
+#' @examples
 check_totals <- function(mer_raw_df, epi_df){
 
     before <- mer_raw_df  %>%
