@@ -44,8 +44,10 @@ create_spectrum <- function(spectrum_file, mapping_file, VAL_YEAR_SPECTRUM){
         select(area_id, MER_name, psnuuid, snu1uid, snu1, psnu)
 
     # Download the CSV file from Google Drive and store it in a temp folder locally
-    temp_file <- tempfile(fileext = ".csv")
-    drive_download(as_id(spectrum_file), path = temp_file)
+ #   temp_file <- tempfile(fileext = ".csv")
+ #   drive_download(as_id(spectrum_file), path = temp_file)
+
+    temp_file <- spectrum_file
 
 
     spectrum_temp_df <- read_csv(temp_file) %>%
