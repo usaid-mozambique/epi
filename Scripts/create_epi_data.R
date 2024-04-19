@@ -1,27 +1,15 @@
 # List of required packages
-required_packages <- c("janitor", "lubridate", "readxl",
-                       "tidyverse", "googledrive", "testthat")
+required_packages <- c("glamr", "gophr","janitor", "lubridate",
+                       "readxl","tidyverse", "mozR", "goggledrive")
 
 # todo:  how to handle packages that are installed on GitHub and not CRAN?
 # Check if packages are installed
 missing_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
 
-# If any packages are missing, install them
-if (length(missing_packages) > 0) {
-  install.packages(missing_packages)
-}
+# If any packages are missing, install them.  Looks at CRAN and USAID OHA repos
+install.packages(missing_packages, repos = c("https://usaid-oha-si.r-universe.dev",
+                                             "https://cloud.r-project.org"))
 
-# some kind of test?
-
-test_glamr <- gagglr::oha_check("glamr")
-test_grabr <- gagglr::oha_check("grabr")
-
-#TODO: only install if package is missing or not up to date
-install.packages(c("glamr", "grabr"),
-                 repos = c("https://usaid-oha-si.r-universe.dev", "https://cloud.r-project.org"))
-
-# Check for updates to installed packages
-update.packages(ask = FALSE)
 
 
 library(glamr) #for setting up the USAID way
@@ -32,29 +20,27 @@ library(readxl)
 library(tidyverse)
 library(mozR)
 library(googledrive)
-library(beepr)
-library(testthat)
 
 
 #authentication for google
 
 glamr::load_secrets()
 
+glamr::folder_setup() # create standard folders if they do not exist
+
 
 #VALUES AND PATHS (Updated by end user) --------------------------------------------------------------
 
-SPECTRUM_PATH <- "Data/indicators.csv" #look for indicators on google drive (spectrum folder)
-#SPECTRUM_PATH <- "1zeXqnQXLg-0Y_C2VwlpNCnj3lTCaEIdV" #old
-#SPECTRUM_PATH <- "1kV67BtNrL4dpyeSNMJvwgciI-DZw0AGH"
+SPECTRUM_PATH <- "1mNEv4Rz96g8wWTNAWe1OwDi4cKQ8rPag"
 MAPPING_PATH <- "1HSKvJ8Tk2EbhXaxvtK5oFI9WPmAzt24G7ZCs_YVzzpE"
 MER_PATH      <- "Data/Genie_SITE_IM_2023_2024.txt"
 MILITARY_PSNU_PATH <- "1wTohWSk93xfOGZXxUoArXUIdGXqaZuaWJ5YR_hf_PAI"
-START_DATE <- "2023 Q1"
-END_DATE <- "2024 Q1"
+START_DATE <- "2023 Q4"
+END_DATE <- "2023 Q4"
 
 
-#location for epi dataset.  What should the right name be?
-EPI_OUTPUT_PATH <- "Dataout/epi.csv"
+DATA_PATH <- "Data/"  #location to download naomi spectrum dataset
+EPI_OUTPUT_PATH <- "Dataout/epi.csv"  #save final dataset here
 
 #All functions
 source("Scripts/utilities.R")
@@ -72,21 +58,16 @@ create_epi_data <- function(x){
   #only TX_CURR for military_mozambique
   mer_military_df <- create_military_MER(mer_original, VAL_YEAR, VAL_QUARTER, MILITARY_PSNU_PATH)
 
+
   #TX_CURR and TX_PVLS
   mer_non_military_df <- mer_original %>%
     filter(snu1 != "_Military Mozambique")
-  mer_all_df <- mer_non_military_df %>%
+
+  mer_all_df <- mer_non_military_df  %>%
     bind_rows(mer_military_df)
 
-  mer_all_tx_curr_value <-  mer_original %>%
-    filter(indicator == "tx_curr") %>%
-    summarise(tx_curr = sum(value, na.rm = TRUE))
-
-  mer_local_tx_curr_value <- mer_all_df %>%
-    filter(indicator == "tx_curr") %>%
-    summarise(tx_curr = sum(value, na.rm = TRUE))
-
   spectrum_df <- create_spectrum(SPECTRUM_PATH, MAPPING_PATH, VAL_YEAR_SPECTRUM)
+
 
   TX_CURR_df   <- mozR::create_epi_model(
     mer_all_df,
@@ -103,9 +84,9 @@ create_epi_data <- function(x){
     c(
       "Age/Sex/Indication/HIVStatus",
       "Age Aggregated/Sex/Indication/HIVStatus",
-     "Age/Sex/HIVStatus",
-     "Age Aggregated/Sex/HIVStatus",
-     "military"
+      "Age/Sex/HIVStatus",
+      "Age Aggregated/Sex/HIVStatus",
+      "military"
     ),
     num_dem = "N",
     label = "TX_PVLS_N"
@@ -120,7 +101,7 @@ create_epi_data <- function(x){
       "Age/Sex/HIVStatus",
       "Age Aggregated/Sex/HIVStatus",
       "military"
-   ),
+    ),
     num_dem = "D",
     label = "TX_PVLS_D"
   )
@@ -133,5 +114,4 @@ create_epi_data <- function(x){
 
 
 epi_df <- map_dfr(create_date(START_DATE, END_DATE), create_epi_data) %>%
-  write_excel_csv2("Dataout/epi.csv")
-beep(8)
+  write_csv(EPI_OUTPUT_PATH)
