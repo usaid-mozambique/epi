@@ -35,8 +35,8 @@ SPECTRUM_PATH <- "1mNEv4Rz96g8wWTNAWe1OwDi4cKQ8rPag"
 MAPPING_PATH <- "1HSKvJ8Tk2EbhXaxvtK5oFI9WPmAzt24G7ZCs_YVzzpE"
 MER_PATH      <- "Data/Genie_SITE_IM_2023_2024.txt"
 MILITARY_PSNU_PATH <- "1wTohWSk93xfOGZXxUoArXUIdGXqaZuaWJ5YR_hf_PAI"
-START_DATE <- "2023 Q4"
-END_DATE <- "2023 Q4"
+START_DATE <- "2024 Q1"
+END_DATE <- "2024 Q1"
 
 
 DATA_PATH <- "Data/"  #location to download naomi spectrum dataset

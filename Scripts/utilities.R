@@ -7,7 +7,7 @@
 #' @param START_DATE Enter the start date for data
 #' @param END_DATE Enter the end date for data
 #'
-#' @return All quarters between the start and end date
+#' @return All quarters between the start and end date as a list
 #' @export
 #'
 #' @examples
@@ -218,7 +218,7 @@ create_military_MER <- function(mer_df, VAL_YEAR, VAL_QUARTER, MILITARY_PSNU_PAT
     left_join(temp_contribution_df, by = "col_join", relationship = "many-to-many") %>%
     mutate(TX_CURR = TX_CURR * percent_total,
            TX_PVLS_D = TX_PVLS_D * percent_total,  #created using the contribution of TX_CURR
-           TX_PVLS_N = pvls_percent * TX_PVLS_D_new
+           TX_PVLS_N = pvls_percent * TX_PVLS_D
     )%>%
     select(-c(pvls_percent, col_join, percent_total))
 
